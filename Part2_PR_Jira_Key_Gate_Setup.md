@@ -51,19 +51,16 @@ This is stricter than the PDF Part 2b sample (regex-only) and does **not** yet i
 
 In the GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**
 
-| Secret | Value |
+| Secret / variable | Value |
 |---|---|
-| `JIRA_EMAIL` | Service account email (e.g. `automation-…@serviceaccount.atlassian.com`) or a user email with Browse access |
-| `JIRA_API_TOKEN` | API token for that account |
+| Secret `JIRA_EMAIL` | Service account email (e.g. `automation-…@serviceaccount.atlassian.com`) |
+| Secret `JIRA_API_TOKEN` | API token for that account |
+| Variable `JIRA_CLOUD_ID` | Test site Cloud ID: `994ccf9c-4f0e-43b4-9172-438a4bd06cc8` (required for scoped service-account tokens) |
+| Variable `JIRA_BASE` | Optional fallback site URL if not using Cloud ID: `https://atimotors-team-c7ja40wb.atlassian.net` |
 
-Optional variable (Settings → Variables):
+The Jira account needs **Browse** access to issues (and membership on projects it must see). Administer Jira is not required for this check.
 
-| Variable | Default if unset |
-|---|---|
-| `JIRA_BASE` | `https://atimotors-team-c7ja40wb.atlassian.net` |
-
-The Jira account only needs **Browse projects** / ability to `GET` issues — not Administer Jira.
-
+**Scoped service-account tokens** must use the API gateway (`JIRA_CLOUD_ID`). Classic user tokens can use `JIRA_BASE` alone.
 ### 3.2 Branch protection (block merge)
 
 1. **Settings → Branches → Add branch protection rule** (e.g. `main`)  
@@ -75,12 +72,9 @@ Until this is set, a failed check is visible but merge is still allowed.
 
 ### 3.3 Service account note
 
-Prefer the same **test-site-only** service account used for Part 1 (or another bot limited to the test site). Do not use a personal token that also reaches company Jira if you want isolation.
+Prefer a **test-site-only** service account. Set `JIRA_CLOUD_ID` so the check uses `https://api.atlassian.com/ex/jira/{cloudId}/…` (required for scoped tokens).
 
-For **scoped** service-account tokens that only work on `api.atlassian.com`, either:
-
-- Use a **classic** (non-scoped) token with Basic auth against `JIRA_BASE` (what the script uses today), or  
-- Extend the script later to support Bearer + Cloud ID gateway.
+For company Jira later: change `JIRA_CLOUD_ID` / secrets to that site; keep the same workflow.
 
 ---
 
