@@ -13,4 +13,4 @@ Automation and CI helpers for ATI Motors Jira workflows.
 ## CI
 
 - **`jira-pr-title`** — PR title must contain Jira keys that exist on the test site
-- **`sync-jira-versions`** — on every git tag: create Jira version in `REL` and set Fix Version on Done bugs linked by merged PR titles
+- **`sync-jira-versions`** — on **GitHub Release published**: create Jira version in `REL` and set Fix Version on Done bugs linked by merged PR titles
