@@ -1,0 +1,148 @@
+# Part 2 (slice): PR title must reference existing Jira tickets
+
+**GitHub check:** `jira-pr-title`  
+**Jira site (current):** `https://atimotors-team-c7ja40wb.atlassian.net`  
+**Scope:** PR **title** only — commits and body are ignored. Multiple keys allowed; every key must exist.
+
+When a pull request is opened or its title is edited, GitHub Actions extracts Jira keys from the title (e.g. `MOM-13`, `EA-5`) and calls the Jira REST API. The check fails (and merge can be blocked) if there are no keys or any key does not exist.
+
+---
+
+## 1. Goal
+
+| Problem | Solution |
+|---|---|
+| PRs merge without a linked Jira ticket | Required CI check on PR title |
+| Fake keys like `EA-99999` would pass a regex-only check | Each key must **exist** on Jira |
+| One PR may fix multiple tickets | All keys in the title are validated |
+
+```
+PR opened / title edited
+        │
+        ▼
+GitHub Action: jira-pr-title
+        │
+        ▼
+Extract KEY-123 from title (one or more)
+        │
+        ▼
+GET /rest/api/3/issue/{key}  (test Jira)
+        │
+        ├── all exist → check passes
+        └── none / any missing → check fails → merge blocked
+```
+
+This is stricter than the PDF Part 2b sample (regex-only) and does **not** yet implement Fix Versions / git tag sync.
+
+---
+
+## 2. Files in this repo
+
+| Path | Purpose |
+|---|---|
+| [`.github/workflows/check-jira-pr-title.yml`](.github/workflows/check-jira-pr-title.yml) | Runs on PR events |
+| [`scripts/check_jira_pr_title.py`](scripts/check_jira_pr_title.py) | Parse title + verify keys via Jira |
+
+---
+
+## 3. One-time GitHub setup
+
+### 3.1 Repository secrets
+
+In the GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | Value |
+|---|---|
+| `JIRA_EMAIL` | Service account email (e.g. `automation-…@serviceaccount.atlassian.com`) or a user email with Browse access |
+| `JIRA_API_TOKEN` | API token for that account |
+
+Optional variable (Settings → Variables):
+
+| Variable | Default if unset |
+|---|---|
+| `JIRA_BASE` | `https://atimotors-team-c7ja40wb.atlassian.net` |
+
+The Jira account only needs **Browse projects** / ability to `GET` issues — not Administer Jira.
+
+### 3.2 Branch protection (block merge)
+
+1. **Settings → Branches → Add branch protection rule** (e.g. `main`)  
+2. Enable **Require status checks to pass before merging**  
+3. Search and require: **`jira-pr-title`**  
+4. Save  
+
+Until this is set, a failed check is visible but merge is still allowed.
+
+### 3.3 Service account note
+
+Prefer the same **test-site-only** service account used for Part 1 (or another bot limited to the test site). Do not use a personal token that also reaches company Jira if you want isolation.
+
+For **scoped** service-account tokens that only work on `api.atlassian.com`, either:
+
+- Use a **classic** (non-scoped) token with Basic auth against `JIRA_BASE` (what the script uses today), or  
+- Extend the script later to support Bearer + Cloud ID gateway.
+
+---
+
+## 4. PR title conventions
+
+**Good**
+
+```text
+MOM-13: sync vehicle serial options
+EA-5 MOM-3: fix navigation timeout
+[MOM-13] Improve logging
+```
+
+**Bad**
+
+```text
+fix stuff                    # no key
+EA-99999: ghost ticket       # key does not exist
+mom-13: lowercase project    # not matched (keys must be uppercase PROJECT-123)
+```
+
+Regex used: `\b([A-Z][A-Z0-9]+-\d+)\b`
+
+---
+
+## 5. Local dry-run
+
+```bash
+export JIRA_BASE='https://atimotors-team-c7ja40wb.atlassian.net'
+export JIRA_EMAIL='your-bot@...'
+export JIRA_API_TOKEN='...'
+export PR_TITLE='MOM-13: test'
+python3 scripts/check_jira_pr_title.py
+```
+
+Exit `0` = pass, `1` = fail.
+
+---
+
+## 6. Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| Check never runs | Workflow not on default branch / path wrong | Push workflow to default branch; open a new PR |
+| Check fails with secrets error | Missing `JIRA_EMAIL` / `JIRA_API_TOKEN` | Add repo secrets |
+| Check fails 401 | Bad token or wrong email | Rotate token; confirm account can browse test site |
+| Key exists in UI but check says MISS | Bot cannot see the project | Add bot to the project / grant Browse |
+| Merge still allowed when red | Branch protection not requiring the check | Require `jira-pr-title` on the branch |
+| Want company Jira later | Point `JIRA_BASE` + secrets at `ati-motors.atlassian.net` | Update variable/secrets; keep same workflow |
+
+---
+
+## 7. Out of scope (later Part 2)
+
+- Git tag → Jira Fix Version creation  
+- Affects Version automation  
+- Scanning commit messages or PR body  
+- Restricting keys to EA / ANY only  
+
+---
+
+## Related
+
+- Plan PDF: `Jira_Automation_Plan_SoftwareBugs.md.pdf` — Part 2b PR title convention  
+- Part 1 doc: `Part1_Vehicle_Serial_Sync_Setup.md`

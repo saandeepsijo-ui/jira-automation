@@ -1,0 +1,29 @@
+name: Check Jira PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  jira-pr-title:
+    name: jira-pr-title
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify Jira keys in PR title exist
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          JIRA_BASE: ${{ vars.JIRA_BASE }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: python3 scripts/check_jira_pr_title.py
