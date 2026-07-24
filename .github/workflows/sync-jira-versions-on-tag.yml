@@ -1,0 +1,38 @@
+name: Sync Jira versions on tag
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  sync-jira-versions:
+    name: sync-jira-versions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout (full history for git tag --contains)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create Jira version and set Fix Versions
+        env:
+          TAG: ${{ github.ref_name }}
+          JIRA_PROJECT: ${{ vars.JIRA_PROJECT }}
+          JIRA_BASE: ${{ vars.JIRA_BASE }}
+          JIRA_CLOUD_ID: ${{ vars.JIRA_CLOUD_ID }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          export JIRA_PROJECT="${JIRA_PROJECT:-REL}"
+          python3 scripts/sync_jira_versions_on_tag.py
