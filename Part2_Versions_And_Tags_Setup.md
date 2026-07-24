@@ -28,15 +28,17 @@ Team-managed `EA` does not handle Releases/Versions reliably via REST.
 | Field | Meaning | When set |
 |---|---|---|
 | **Affects Version** | Broken / found while testing this cycle | Bug **create** → `val-26.7` |
-| **Fix Version** | Shipped in this release tag | **Git tag push** → tag name |
+| **Fix Version** | Shipped in this **GitHub Release** | Release **published** → tag name |
 
 ```
 Bug filed (Affects = val-26.7)
   → PR titled "REL-12: fix …" merges
-  → git tag test-1.0.0 pushed
+  → GitHub Release published (tag e.g. test-1.0.0)
   → Jira version test-1.0.0 created
   → Done bugs whose merge commit is in that tag get Fix Version = test-1.0.0
 ```
+
+**Important:** A plain `git push --tags` does **not** sync to Jira. Only publishing a **GitHub Release** (UI or `gh release create`) triggers the workflow.
 
 ---
 
@@ -66,21 +68,30 @@ Until the rule exists, reporters (or API) can set Affects Version manually — e
 
 ---
 
-## 4. Tag → Fix Version (GitHub Actions)
+## 4. GitHub Release → Fix Version (Actions)
 
 ### Files
 
 | Path | Role |
 |---|---|
-| [`.github/workflows/sync-jira-versions-on-tag.yml`](.github/workflows/sync-jira-versions-on-tag.yml) | Runs on **every** tag push |
+| [`.github/workflows/sync-jira-versions-on-tag.yml`](.github/workflows/sync-jira-versions-on-tag.yml) | Runs on **`release: published`** only |
 | [`scripts/sync_jira_versions_on_tag.py`](scripts/sync_jira_versions_on_tag.py) | Create version + set Fix Versions |
+
+### Trigger
+
+| Event | Syncs to Jira? |
+|---|---|
+| GitHub **Release** published | **Yes** — uses `release.tag_name` as the version name |
+| Git tag push only | **No** |
+| Draft release | **No** (until published) |
+| Pre-release published | **Yes** (also fires `published`) |
 
 ### Behaviour
 
-1. Create Jira version named as the tag in project `REL` (`released: true`), skip if it already exists  
+1. Create Jira version named as the release’s tag in project `REL` (`released: true`), skip if it already exists  
 2. Find bugs: `project = REL AND issuetype = Bug AND statusCategory = Done AND fixVersion is EMPTY`  
 3. For each key, find **merged PRs in this repo** whose **title** contains that key  
-4. If merge commit is in the tag (`git tag --contains`) → add Fix Version  
+4. If merge commit is in that tag (`git tag --contains`) → add Fix Version  
 5. Else comment on the issue (missing from tag, or no PR found)
 
 ### Secrets / variables (already used by PR gate)
@@ -102,10 +113,12 @@ Until the rule exists, reporters (or API) can set Affects Version manually — e
 1. Create a Bug in `REL` with Affects Version `val-26.7`  
 2. Transition it to **Done**  
 3. Open a PR titled `REL-N: …`, merge to `main`  
-4. `git tag test-1.0.0 && git push origin test-1.0.0`  
+4. Publish a GitHub Release for a new tag, e.g.  
+   `gh release create test-1.0.1 --generate-notes --title "test-1.0.1"`  
+   (or create the release in the GitHub UI)  
 5. Confirm:
-   - Version `test-1.0.0` exists on `REL`
-   - Bug has **Fix Version** `test-1.0.0`
+   - Version `test-1.0.1` exists on `REL`
+   - Bug has **Fix Version** `test-1.0.1`
    - Actions run **sync-jira-versions** succeeded  
 
 ---
@@ -115,7 +128,7 @@ Until the rule exists, reporters (or API) can set Affects Version manually — e
 | PDF | This implementation |
 |---|---|
 | Company Jira EA/ANY | Test site **`REL` only** |
-| Tags `val-*` | **All tags** (`*`) |
+| Tags `val-*` | **GitHub Releases only** (`release: published`), not every tag |
 | Commit from Jira Development panel | **Merged PR title** in this repo |
 | Epic-scoped JQL | All Done bugs with empty Fix Version |
 | Separate product repos | Automation **lives in this repo** |

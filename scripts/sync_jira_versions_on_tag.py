@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""On git tag push: create Jira version and set Fix Version on Done bugs linked via PRs.
+"""On GitHub Release published: create Jira version and set Fix Version on Done bugs linked via PRs.
+
+Triggered by workflow `release: published` (not raw tag pushes). TAG is the release's tag_name.
 
 Env:
-  TAG                 — tag name (required), e.g. test-1.0.0
+  TAG                 — release tag name (required), e.g. test-1.0.0
   JIRA_EMAIL          — service account / user email
   JIRA_API_TOKEN      — API token
   JIRA_CLOUD_ID       — Atlassian Cloud ID (preferred for scoped tokens)

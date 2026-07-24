@@ -1,9 +1,9 @@
-name: Sync Jira versions on tag
+name: Sync Jira versions on GitHub Release
 
+# Only a published GitHub Release creates/updates Jira versions — not every git tag.
 on:
-  push:
-    tags:
-      - "*"
+  release:
+    types: [published]
 
 jobs:
   sync-jira-versions:
@@ -13,10 +13,11 @@ jobs:
       contents: read
       pull-requests: read
     steps:
-      - name: Checkout (full history for git tag --contains)
+      - name: Checkout release tag (full history for git tag --contains)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,7 +26,7 @@ jobs:
 
       - name: Create Jira version and set Fix Versions
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ github.event.release.tag_name }}
           JIRA_PROJECT: ${{ vars.JIRA_PROJECT }}
           JIRA_BASE: ${{ vars.JIRA_BASE }}
           JIRA_CLOUD_ID: ${{ vars.JIRA_CLOUD_ID }}
