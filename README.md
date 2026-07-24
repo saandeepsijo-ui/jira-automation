@@ -12,3 +12,5 @@ Automation and CI helpers for ATI Motors Jira workflows.
 ## CI
 
 Pull requests run **`jira-pr-title`**: the PR title must contain one or more Jira issue keys that exist on the configured Jira site. See the Part 2 doc for secrets and branch protection.
+
+<!-- ci probe -->
