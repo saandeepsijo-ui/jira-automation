@@ -32,7 +32,7 @@ GET /rest/api/3/issue/{key}  (test Jira)
         └── none / any missing → check fails → merge blocked
 ```
 
-This is stricter than the PDF Part 2b sample (regex-only) and does **not** yet implement Fix Versions / git tag sync.
+This is stricter than the PDF Part 2b sample (regex-only). Keys in PR titles also feed **Fix Version sync** for project `REL` when tags are pushed — see [Part2_Versions_And_Tags_Setup.md](Part2_Versions_And_Tags_Setup.md).
 
 ---
 
